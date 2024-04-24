@@ -1,6 +1,6 @@
 import { AuthState } from '../../../common/types/auth/types';
 import { AuthActionType, PayloadAction } from './context';
-import { deleteCookie } from '../../../common/utils/cookie';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface ReducerHandler {
   INITIALIZE(state: AuthState, action: PayloadAction<AuthState>): AuthState;
@@ -66,19 +66,28 @@ export function login(payload: AuthState): PayloadAction<AuthState> {
 }
 
 export async function logout(callback: any): Promise<PayloadAction<AuthState>> {
-  // Remove cookie
-  deleteCookie('token');
+  try {
+    // Remove token from AsyncStorage
+    await AsyncStorage.removeItem('token');
 
-  // Remove user data
-  deleteCookie('user');
+    // Remove user data from AsyncStorage
+    await AsyncStorage.removeItem('user');
 
-  setTimeout(async () => {
     // Check callback and call
-    typeof callback === 'function' && (await callback());
-  }, 2000);
+    if (typeof callback === 'function') {
+      await callback();
+    }
 
-  return Promise.resolve({
-    type: AuthActionType.LOGOUT,
-    payload: {},
-  });
+    // Return logout action
+    return {
+      type: AuthActionType.LOGOUT,
+      payload: {},
+    };
+  } catch (error) {
+    // Handle errors if any
+    console.error('Error logging out:', error);
+    return Promise.reject(error);
+  }
 }
+
+

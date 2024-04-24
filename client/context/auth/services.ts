@@ -2,6 +2,8 @@ import { User } from "../../../common/interface/User";
 import { Response } from "../../../common/types/res/response.type";
 import { setCookie } from "../../../common/utils/cookie";
 import { fetcher } from "../../../common/utils/fetcher";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export type AuthDto = {
      token: any;
@@ -10,33 +12,29 @@ export type AuthDto = {
 
 class AuthServices {
      // LOGIN
-     async login(payload: any): Promise<AuthDto | any> {
-          
-          // Response
-          const res: Response = await fetcher({
-               method: 'POST',
-               url: '/auth/login',
-               payload: payload
-          });
+ async login(payload: any): Promise<AuthDto | any> {
+     // Response
+     const res: Response = await fetcher({
+          method: 'POST',
+          url: '/auth/login',
+          payload: payload
+     });
 
-          if (res?.status === 200) {
-               // Token
-               const token = res?.data?.token;
+     if (res?.status === 200) {
+          // Token
+          const token = res?.data?.token;
 
-               // Save token
-               setCookie('token', token.accessToken, token?.expiration);
+          await AsyncStorage.setItem('token', JSON.stringify(token.accessToken, token?.expiration));
 
-               // Save user
-               setCookie('user', res?.data?.user, token?.expiration);
+          await AsyncStorage.setItem('user', JSON.stringify(res?.data?.user, token?.accessToken));
 
-               // Return data
-               return Promise.resolve(res?.data);
-          }
-          
-
-          // Return error
-          return Promise.resolve(false);
+          // Return data
+          return Promise.resolve(res?.data);
      }
+
+     // Return error
+     return Promise.resolve(false);
+}
 
      // LOGIN
      async register(payload: any): Promise<boolean> {

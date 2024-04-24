@@ -7,7 +7,7 @@ import Register from './client/Screen/Register';
 import ChatSide from './client/Screen/chat_layout/Chat_Side';
 import Profile from './client/Screen/Profile';
 import Contact from 'client/Screen/Contact';
-import Add_Friend from 'client/Screen/Add_Friend';
+import Add_Friend from './client/Screen/Add_Friend';
 import Message from 'client/Screen/chat_layout/Message';
 import AuthProvider, { AuthContext } from 'client/context/auth/context';
 

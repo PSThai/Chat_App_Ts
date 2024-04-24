@@ -2,6 +2,8 @@ import { createContext, Dispatch, useEffect, useReducer } from 'react';
 import { getCookie } from '../../../common/utils/cookie';
 import { AuthState } from '../../../common/types/auth/types';
 import { initialize, reducer } from './reducers';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export enum AuthActionType {
   INITIALZE = 'INITIALIZE',
@@ -38,25 +40,35 @@ const AuthProvider: React.FC<Props> = ({ children }: Props) => {
 
   // Use Effect
   useEffect(() => {
-    (async () => {
-      // Get access token from cookie
-      const accessToken = getCookie('token');
-
-      // Check access oken
-      if (!accessToken) {
-        return dispatch(initialize({ isAuthenticated: false }));
-      }
-
-      // User
+    const fetchUserData = async () => {
       try {
-        const user = getCookie('user');
-        dispatch(initialize({ isAuthenticated: true, ...user })); 
+        // Get access token from AsyncStorage
+        const accessToken = await AsyncStorage.getItem('token');
+  
+        // Check access token
+        if (!accessToken) {
+          return dispatch(initialize({ isAuthenticated: false }));
+        }
+  
+        // Get user data from AsyncStorage
+        const userDataString = await AsyncStorage.getItem('user');
+        if (!userDataString) {
+          throw new Error('User data not found in AsyncStorage');
+        }
+  
+        const user = JSON.parse(userDataString);
+  
+        // Dispatch initialize action with user data
+        dispatch(initialize({ isAuthenticated: true, ...user }));
       } catch (error) {
+        console.error('Error fetching user data:', error);
         dispatch(initialize({ isAuthenticated: false }));
       }
-    })();
+    };
+  
+    fetchUserData();
   }, []);
-
+  
   // Shared
   const shared: any = {
     user: {

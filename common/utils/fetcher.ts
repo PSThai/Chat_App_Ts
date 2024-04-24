@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { getCookie } from './cookie';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 // API Host
-const host = '192.168.52.34';
+const host = '10.0.30.210';
 
 // Server Port
 const port = '3001';
@@ -14,15 +16,17 @@ export const baseUrl = `http://${host}:${port}`;
 const api = axios.create({
   baseURL: baseUrl,
   headers: {
-    'Access-Control-Allow-Origin': '*',
+    // 'Access-Control-Allow-Origin': '*',
     'Content-Type': 'application/json',
   },
 });
 
 // Add an interceptor to set the token in the request headers
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   // Get token fom cookie
-  const token = getCookie('token');
+  // const token = getCookie('token');
+  const token = await AsyncStorage.getItem('token');
+
 
   // Check token is valid
   if (token) {
@@ -123,7 +127,9 @@ const DELETE = async (
     : null;
 
   // Token
-  const accessToken: string | null = getCookie('token')?.accessToken;
+  // const accessToken: string | null = getCookie('token')?.accessToken;
+  const accessToken: string | null = await AsyncStorage.getItem('token');
+
 
   // Create Fetch
   const response: any = await fetch(
