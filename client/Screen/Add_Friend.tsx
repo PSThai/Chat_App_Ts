@@ -5,19 +5,24 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { fetcher } from 'common/utils/fetcher';
 import { User } from 'common/interface/User';
 import { useAuth } from 'client/hooks/use-auth';
-import { AuthHookType } from 'common/types/other/hook.type';
+import { AuthHookType, HookType } from 'common/types/other/hook.type';
 import { UserHasFriend } from 'common/types/chat/user-has-friend.type';
 import { Response } from 'common/types/res/response.type';
-type Props = { item: UserHasFriend; closeAddModal: Function };
+import { FriendStateEnum } from 'common/enum/friend-state.enum'
 
-const Add_Friend = ({ item, closeAddModal }: Props) => {
+
+
+const Add_Friend = () => {
+
     const [friend, setFriend] = useState<UserHasFriend | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [email, setEmail] = useState("");
     const [userFind, setUserFind] = useState<User | null>(null);
     const [searchType, setSearchType] = React.useState<string>('EMAIL');
     const user: AuthHookType<User> = useAuth();
+    const userHookType : HookType<User> = useAuth();
     const nav = useNavigation();
+    const [opChatLoading, setOpChatLoading] = React.useState<boolean>(false);
     type NavType = {
         navigate: (screen: string) => void;
     }
@@ -34,33 +39,52 @@ const Add_Friend = ({ item, closeAddModal }: Props) => {
         nav.navigate("Contact");
     };
 
-    React.useEffect(() => {
-        setFriend(item);
-        return () => setFriend(null);
-    }, [item]);
+    // Use Effect
+    // React.useEffect(() => {
+    //     // Set friend
+    //     setFriend(userFind);
+
+    //     // Return clean
+    //     return () => setFriend(null);
+    //     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, []);
 
     const handleAddFriend = async () => {
-        try {
-            const res: Response = await fetcher({
-                method: 'POST',
-                url: '/friends/send',
-                payload: {
-                    inviter: {
-                        user: user.get?._id,
-                        avatar: user.get?.avatar,
-                        nickname: user.get?.nickname,
-                    },
-                    friend: {
-                        user: item?._id,
-                        avatar: item?.avatar,
-                        nickname: item?.nickname,
-                    },
+
+        // Add friend
+        const res: Response = await fetcher({
+            method: 'POST',
+            url: '/friends/send',
+            payload: {
+                inviter: {
+                    user: user.get?._id,
+                    avatar: user.get?.avatar,
+                    nickname: user.get?.nickname,
                 },
-            });
-            closeModal();
-        } catch (error) {
-            console.error('Error adding friend:', error);
+                friend: {
+                    user: userFind?._id,
+                    avatar: userFind?.avatar,
+                    nickname: userFind?.nickname,
+                },
+            },
+        });
+        // setFriend(userFind);
+
+        if (res?.status !== 200) {
+            console.error('Gửi yêu cầu kết bạn thất bại');
+        } else {
+            // Set hasFriend
+            setFriend((prev: UserHasFriend | null) => ({
+                ...(prev as UserHasFriend),
+                friend: FriendStateEnum.PENDING,
+                isSender: true,
+            }));
+
+            // Message success
+            console.log('Đã gửi yêu cầu kết bạn');
         }
+        closeModal();
+
     };
     const handleMessage = async (nav: NavType) => {
         // Thêm xử lý khi nhấn nút "Nhắn tin" ở đây
@@ -74,15 +98,26 @@ const Add_Friend = ({ item, closeAddModal }: Props) => {
                     nickname: user.get?.nickname,
                 },
                 friend: {
-                    user: friend?._id,
-                    avatar: friend?.avatar,
-                    nickname: friend?.nickname,
+                    user: userFind?._id,
+                    avatar: userFind?.avatar,
+                    nickname: userFind?.nickname,
                 },
             },
         });
 
-        nav.navigate("Message");
-        closeModal();
+        setTimeout(() => {
+            if (res?.status !== 200) {
+                // Message error
+                console.error('Mở tin nhắn thất bại');
+            } else {
+                // Cancel
+                nav.navigate("Chat_content");
+
+                closeModal();
+            }
+            // Disable loading
+            setOpChatLoading(false);
+        }, 1300);
     };
     const searchUser = async () => {
         try {
@@ -92,11 +127,12 @@ const Add_Friend = ({ item, closeAddModal }: Props) => {
                 payload: {
                     search: email,
                     type: 'EMAIL',
-                    user: user.get?._id
+                    user: userHookType.get?._id
                 },
             });
             if (res?.status === 200) {
                 setUserFind(res?.data);
+                console.log(userFind)
             }
         } catch (error) {
             console.error('Error searching user:', error);
@@ -159,8 +195,8 @@ const Add_Friend = ({ item, closeAddModal }: Props) => {
                                 />
                             </View>
                             <View style={{ marginBottom: 8, marginLeft: 12, flex: 1 }}>
-                                <Text style={{ fontWeight: "bold" }}>{userFind.nickname}</Text>
-                                <Text style={{ marginTop: 4, color: "gray" }}> {userFind.phone}</Text>
+                                <Text style={{ fontWeight: "bold" }}>{userFind?.nickname}</Text>
+                                <Text style={{ marginTop: 4, color: "gray" }}> {userFind?.phone}</Text>
                             </View>
                             <Pressable style={{
                                 backgroundColor: "#38A2CF",
@@ -191,7 +227,7 @@ const Add_Friend = ({ item, closeAddModal }: Props) => {
                             <Button title="Kết bạn" onPress={handleAddFriend} />
                         </View>
                         <View style={{ marginTop: 10 }}>
-                        <Button title="Nhắn tin" onPress={() => handleMessage(nav)} />
+                            <Button title="Nhắn tin" onPress={() => handleMessage(nav)} />
                         </View>
                         <View style={{ marginTop: 10 }}>
                             <Button title="Close" onPress={closeModal} />

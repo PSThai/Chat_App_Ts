@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 // API Host
-const host = '10.0.30.210';
+const host = '192.168.52.34';
 
 // Server Port
 const port = '3001';

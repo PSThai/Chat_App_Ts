@@ -9,4 +9,5 @@ export interface User {
   avatar: string;
   createdAt: string;
   updated_at: string;
+  gender:string;
 }
