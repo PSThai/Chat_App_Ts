@@ -5,7 +5,7 @@ export const isTokenExpired = async (token: string) => {
 
 // Assuming `token` is your JWT token
 const decodeToken = jwt.decode(token);
-const currentTime = Date.now() / 5000;
+const currentTime = Date.now() / 1000;
 
 if (typeof decodeToken !== 'string') {
     // decodeToken is JwtPayload

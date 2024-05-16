@@ -1,10 +1,12 @@
 import axios from 'axios';
-import { getCookie } from './cookie';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect } from 'react';
+import { getAsyncStorage } from './cookie';
+
 
 
 // API Host
-const host = '192.168.52.34';
+const host = '172.19.200.229';
 
 // Server Port
 const port = '3001';
@@ -16,24 +18,29 @@ export const baseUrl = `http://${host}:${port}`;
 const api = axios.create({
   baseURL: baseUrl,
   headers: {
-    // 'Access-Control-Allow-Origin': '*',
+    //'Access-Control-Allow-Origin': '*',
     'Content-Type': 'application/json',
   },
 });
 
 // Add an interceptor to set the token in the request headers
+
+// Add an interceptor to set the token in the request headers
 api.interceptors.request.use(async (config) => {
-  // Get token fom cookie
-  // const token = getCookie('token');
-  const token = await AsyncStorage.getItem('token');
-
-
-  // Check token is valid
+  // Get token from AsyncStorage
+  const token = await getAsyncStorage('token'); // Chờ Promise được giải quyết
+  
+  // Check if token is valid
   if (token) {
     config.headers['Authorization'] = `Bearer ${token}`;
   }
+ 
+  
   return config;
 });
+
+
+
 
 // Fetching
 const fetching = async (response: any, route: Function | null = null) => {
@@ -51,7 +58,7 @@ const fetching = async (response: any, route: Function | null = null) => {
 
   // Return Data
   return { status: statusCode, data };
-  
+
 };
 
 // Custom Fetcher
@@ -122,13 +129,13 @@ const DELETE = async (
   // String params
   const strParams = params
     ? Object.keys(params)
-        .map((key) => `${key}=${params[key]}`)
-        .join('&')
+      .map((key) => `${key}=${params[key]}`)
+      .join('&')
     : null;
 
   // Token
   // const accessToken: string | null = getCookie('token')?.accessToken;
-  const accessToken: string | null = await AsyncStorage.getItem('token');
+  const accessToken = await AsyncStorage.getItem('token');
 
 
   // Create Fetch

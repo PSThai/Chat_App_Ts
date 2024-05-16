@@ -130,6 +130,7 @@ const Add_Friend = () => {
                     user: userHookType.get?._id
                 },
             });
+            
             if (res?.status === 200) {
                 setUserFind(res?.data);
                 console.log(userFind)

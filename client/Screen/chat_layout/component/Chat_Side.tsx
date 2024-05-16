@@ -1,4 +1,4 @@
-import { FlatList, Image, Modal, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { FlatList, Image, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { FC, useEffect, useState } from 'react'
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,6 +12,8 @@ import EmptyHorizontal from 'client/context/empty/horizontal.empty';
 import { useAuth } from 'client/hooks/use-auth';
 import { useConversations } from 'client/hooks/user-conversations';
 import ConversationsProvider from 'client/context/conversations-context';
+import Message from './Message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = {
   cvsContext: any;
@@ -25,22 +27,21 @@ enum LoadingSearch {
   STATIC = 'STATIC',
 }
 
-export const ChatWrapper:FC = () => {
+export const ChatWrapper: FC = () => {
   // Return
   return (
-    <ConversationsProvider>
-      <Chat_Side />
-    </ConversationsProvider>
+    <Chat_Side />
   );
 };
 
-const Chat_Side:FC = () => {
+const Chat_Side: FC = () => {
 
   // Conversations
   const cvsContext: any = useConversations();
   // user 
   const user: any = useAuth();
   // Config
+
   const config = useConfig();
 
   const delay = 300;
@@ -51,11 +52,7 @@ const Chat_Side:FC = () => {
   // Search pop
   const [searchPop, setSearchPop] = React.useState<boolean>(false);
 
-  // Handle Set Conversation
-  const handleSetCvs = (cvs: any) => {
-    // Set Cvs
-    cvsContext.current.get?._id !== cvs?._id && cvsContext.current.set(cvs);
-  };
+
   // Use Effect
   React.useEffect(() => {
     // Load Conversations
@@ -63,23 +60,28 @@ const Chat_Side:FC = () => {
       // Enable loading
       setCsvLoading(true);
 
+      // console.log(user.get?._id);
+
+
       // Get conversations
       const res: Response = await fetcher({
         method: 'GET',
         url: '/conversations/page',
         payload: { page: 1, user: user.get?._id },
       });
-      console.log(res?.data);
+      // console.log(res?.data);
       // Check response and handle data
       if (res?.status === 200)
         cvsContext.list.set(res?.data);
+
+      //console.log(res?.data);
 
       // Disable Loading
       setTimeout(() => {
         setCsvLoading(false);
       }, delay);
-      
-            
+
+
     })();
 
     // Return clean
@@ -95,14 +97,16 @@ const Chat_Side:FC = () => {
     // Loading current conversation
     listCvsLength > 0 &&
       (async () => {
-        // Load data to session storage
-        const sessionCvs = sessionStorage.getItem('tshus.curent.conversation');
+        // Load data from session storage
+        const sessionCvs = await AsyncStorage.getItem('tshus.current.conversation'); // Corrected key
 
         // Parse data
         const parse = sessionCvs ? JSON.parse(sessionCvs) : null;
 
         // Handle set current cvs
         const setCurrentCvs = cvsContext.current.set;
+
+        
 
         // Check session has conversation
         if (parse?.user_id === user.get?._id && parse?.cvs) {
@@ -117,22 +121,23 @@ const Chat_Side:FC = () => {
         setCurrCsvLoading(true);
       })();
 
-    // Disable Loadign
+    // Disable Loading
     setTimeout(() => {
       setCurrCsvLoading(false);
     }, delay);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cvsContext.list.get]);
+
   type NavType = {
-    navigate: (screen: string) => void;
+    navigate: (screen: string, data: any) => void;
   }
   const nav = useNavigation();
   const goToContact = (nav: NavType) => {
-    nav.navigate("Contact");
+    nav.navigate("Contact", null);
   };
 
   const goToProfile = (nav: NavType) => {
-    nav.navigate("Profile");
+    nav.navigate("Profile", null);
   };
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -146,13 +151,16 @@ const Chat_Side:FC = () => {
     setModalVisible(false); // Đóng modal sau khi chọn "Thêm đoạn chat"
   };
 
-  const handleMessage = (nav: NavType) => {
-    nav.navigate("Message");
+  const handleMessage = (nav: NavType, cvs: any) => {
+    // Set Cvs
+    cvsContext.current.get?._id !== cvs?._id && cvsContext.current.set(cvs);
+
+    nav.navigate("Message", null);
   }
 
   const handleAddFriends = (nav: NavType) => {
     console.log("Thêm bạn bè");
-    nav.navigate("Add_friend")
+    nav.navigate("Add_friend", null)
     setModalVisible(false); // Đóng modal sau khi chọn "Thêm bạn bè"
   };
   return (
@@ -214,70 +222,52 @@ const Chat_Side:FC = () => {
         </TouchableOpacity>
       </Modal>
       {/* - - - - - - - - - - Body - - - - - - - - - - - */}
+      <ScrollView style={styles.body} >
+        {
+          cvsContext?.list.get?.map((item: any, index: number) => {
 
-      <View style={styles.body}>
+            const isRooms = item?.type === ConversationEnum.ROOMS;
 
-        {!csvLoading ? (
-          cvsContext?.list.get?.length > 0 ? (
-            cvsContext?.list.get?.map((item: any, index: number) => {
-              // Is Rooms
-              const isRooms = item?.type === ConversationEnum.ROOMS;
+            const chats = item?.chats?.[0];
 
-              const chats = item?.chats?.[0];
+            const isInviter = user.get?._id === chats?.inviter?.user;
 
-              const isInviter = user._id === chats?.inviter?.user;
+            const cvsName = isRooms
+              ? item?.rooms[0]?.name
+              : isInviter
+                ? chats?.friend?.nickname
+                : chats?.inviter?.nickname;
+            return (
 
-              const cvsName = isRooms
-                ? item?.rooms[0]?.name
-                : isInviter
-                  ? chats?.friend?.nickname
-                  : chats?.inviter?.nickname;
+              <TouchableOpacity onPress={() => handleMessage(nav, item)}>
 
-              return (
 
-                <TouchableOpacity
+                <View style={{ flexDirection: 'row', borderColor: "#B7C2CF", borderBottomWidth: 1, paddingTop: 5 }}>
+                  <Image
+                    style={styles.avatar}
+                    source={{
+                      uri: "https://i.pinimg.com/564x/e6/eb/28/e6eb285f58d7b13a0974014ba87734dc.jpg",
+                    }}
+                  />
 
-                  onPress={() => handleSetCvs(item)}
-                  style={{
-                    padding: 20,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor:
-                      config.get.theme === ThemeEnum.DARK ? '#333' : '#fff',
-                  }}
-                >
-                  <View style={{ marginLeft: 10 }}>
-                    <Text style={{ fontSize: 16 }}>{cvsName}</Text>
-                    <Text style={{ fontSize: 12, color: 'gray' }}>
+                  <View style={{ paddingLeft: 8, paddingTop: 5 }}>
+                    <Text style={{ fontSize: 15, fontWeight: 'bold' }}>{cvsName}</Text>
+                    <Text style={{ fontSize: 11, paddingTop: 8 }}>
                       {item?.last_message || 'Không có tin nhắn nào'}
                     </Text>
                   </View>
-                </TouchableOpacity>
-              );
-            })
-          ) : (
-            <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-              <Text>Không có dữ liệu</Text>
-            </View>
-          )
-        ) : (
-          <View style={{ flex: 1 }}>
-            {/* {Array.from({ length: 7 }).map((_, index) => (
-              // <View key={index} style={{ padding: 20, flexDirection: 'row' }}>
-              //   <Avatar
-              //     style={{ marginRight: 10, borderRadius: 10 }}
+
+                </View>
+              </TouchableOpacity>
+            )
+          })
+        }
+
+      </ScrollView>
 
 
-              //   />
-              //   <Avatar
-              //     style={{ height: 35, flex: 1, borderRadius: 10 }}
-              //   />
-              // </View>
-            ))} */}
-          </View>
-        )}
-      </View>
+
+
       {/* - - - - - - - - - - Footer - - - - - - - - - - - */}
 
       <View style={styles.footer}>
@@ -319,12 +309,12 @@ export default (Chat_Side);
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "white",
   },
+
   // - - - - - - - - - - Header - - - - - - - - - -
   header: {
+    flex: 1,
     overflow: "hidden",
     width: "100%",
     height: 110,
@@ -387,16 +377,18 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     flexDirection: 'column',
-    justifyContent: "center",
-    alignContent: 'center',
-    alignItems: "center"
+    position: 'absolute',
+    width: "100%",
+    paddingTop: 90,
+    paddingLeft: 10
   },
-  item: {
-    alignItems: "center",
-    flexDirection: "row",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+  avatar: {
+    borderWidth: 1,
+    borderColor: "#1890FF",
+    width: 60,
+    height: 60,
+    borderRadius: 80,
+    marginBottom: 10,
   },
   image: {
     margin: 5,
@@ -408,10 +400,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-  },
-  badge: {
-    padding: 3.5,
-    backgroundColor: 'green', // Change the color as needed
   },
   textContainer: {
     marginLeft: 15,

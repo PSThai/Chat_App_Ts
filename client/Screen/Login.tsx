@@ -6,10 +6,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 // import authService from '../context/auth/services';
 import { fetcher } from 'common/utils/fetcher';
 import { Response } from 'common/types/res/response.type';
-import { getCookie, setCookie } from '../../common/utils/cookie';
+import { getAsyncStorage, setAsyncStorage } from '../../common/utils/cookie';
 import { useAuth } from 'client/hooks/use-auth';
 import authServices from 'client/context/auth/services'
 import { login } from 'client/context/auth/reducers';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // import { login } from '../context/auth/reducers';
 
 const Login = () => {
@@ -37,12 +38,15 @@ const Login = () => {
         setLoading(true);
         // Save data
         if (loged?.user) {
+
+            const accessToken = getAsyncStorage('token');
+           
             // Set data
             auth.set(login({ ...loged?.user, isAuthenticated: true }));
             nav.navigate("Chat")
         } else {
             console.log("login fail");
-            
+
         }
 
         // // Response
@@ -114,7 +118,7 @@ const Login = () => {
                         color: "#FFF",
                         fontWeight: 'bold',
                         fontSize: 55,
-                    }}>ZOHE</Text>
+                    }}>TSHUS</Text>
                 </View>
 
 

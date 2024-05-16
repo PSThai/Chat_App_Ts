@@ -1,8 +1,8 @@
 import { createContext, Dispatch, useEffect, useReducer } from 'react';
-import { getCookie } from '../../../common/utils/cookie';
 import { AuthState } from '../../../common/types/auth/types';
 import { initialize, reducer } from './reducers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAsyncStorage } from 'common/utils/cookie';
 
 
 export enum AuthActionType {
@@ -43,15 +43,17 @@ const AuthProvider: React.FC<Props> = ({ children }: Props) => {
     const fetchUserData = async () => {
       try {
         // Get access token from AsyncStorage
-        const accessToken = await AsyncStorage.getItem('token');
-  
+        const accessToken = await getAsyncStorage('token');
+       
+        
+
         // Check access token
         if (!accessToken) {
           return dispatch(initialize({ isAuthenticated: false }));
         }
   
         // Get user data from AsyncStorage
-        const userDataString = await AsyncStorage.getItem('user');
+        const userDataString = await getAsyncStorage('user');
         if (!userDataString) {
           throw new Error('User data not found in AsyncStorage');
         }

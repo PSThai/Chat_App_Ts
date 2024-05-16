@@ -1,6 +1,8 @@
 import React from 'react';
 import io from 'socket.io-client';
 import { ThemeEnum } from '../enum/theme.enum';
+import { getAsyncStorage, setAsyncStorage } from 'common/utils/cookie';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const TshusContext = React.createContext(null);
 
@@ -15,13 +17,25 @@ const TshusProvider: React.FC<Props> = ({ children }: Props) => {
     const defaultConfig = { theme: ThemeEnum.LIGHT };
 
     // Get config
-    const data: any = localStorage.getItem('config');
+    const data: any = getAsyncStorage('config');
 
-    // Check and set config to local storage
-    !data && localStorage.setItem('config', JSON.stringify(defaultConfig));
+    let parsedData;
 
-    // Return
-    return data ? JSON.parse(data) : defaultConfig;
+    // Try parsing the config data
+    try {
+      parsedData = data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error("Failed to parse config data:", error);
+      parsedData = null;
+    }
+
+    // Check and set config to local storage if not existing or failed to parse
+    if (!parsedData) {
+      AsyncStorage.setItem('config', JSON.stringify(defaultConfig));
+    }
+
+    // Return the parsed data or default config
+    return parsedData || defaultConfig;
   });
 
   // Stomp client state
@@ -36,13 +50,13 @@ const TshusProvider: React.FC<Props> = ({ children }: Props) => {
     setConfig(newConfig);
 
     // Set config to local storage
-    localStorage.setItem('config', JSON.stringify(newConfig));
+    AsyncStorage.setItem('config', JSON.stringify(newConfig));
   };
 
   // Use Effect
   React.useEffect(() => {
     // Calling connecting
-    const socket: any = io(`http://localhost:2820`);
+    const socket: any = io(`http://172.19.200.229:2820`);
 
     // Set Client
     setSocket(socket);

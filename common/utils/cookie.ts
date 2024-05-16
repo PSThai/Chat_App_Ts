@@ -1,43 +1,39 @@
-import Cookies from 'js-cookie';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Set Cookie with expired time
-export const setCookie = async (key: string, data: any, expires: string) => {
-  // Expires Date
-  const expr = new Date(expires);
-
-  // Data to string
-  const strData = JSON.stringify(data);
-
-  // Set Token and save to Cookie 
-  Cookies.set(key, strData, { expires: expr });
-};
-
-export const getCookie = (key: string): any | null => {
-  // Get Cookie
-  const result: string | undefined = Cookies.get(key);
-
-  // Debug logging
-  console.log("Retrieved cookie:", key, result);
-
-  // Check if cookie exists and is not undefined
-  if (result !== undefined) {
-    // Parse the cookie data
-    try {
-      const parseResult = JSON.parse(result);
-      return parseResult;
-    } catch (error) {
-      // If parsing fails, return null
-      console.error("Error parsing cookie data:", error);
-      return null;
-    }
-  } else {
-    // Debug logging
-    console.log("Cookie not found or undefined:", key);
-    return null; // Return null if cookie doesn't exist or is undefined
+// Set AsyncStorage with expired time
+export const setAsyncStorage = async (key: string, data: any) => {
+  try {
+    // Convert data to string
+    const strData = JSON.stringify(data);
+    // Save data to AsyncStorage
+    await AsyncStorage.setItem(key, strData);
+  } catch (error) {
+    console.error('Error setting AsyncStorage:', error);
   }
 };
 
+export const getAsyncStorage = async (key: string): Promise<any | null> => {
+  try {
+    // Retrieve data from AsyncStorage
+    const result = await AsyncStorage.getItem(key);
+    if (result !== null) {
+      // Parse the data
+      return JSON.parse(result);
+    } else {
+      return null; // Return null if no data found
+    }
+  } catch (error) {
+    console.error('Error getting AsyncStorage:', error);
+    return null; // Return null if error occurs
+  }
+};
 
-
-// delete Cookie Data
-export const deleteCookie = (key: string): void => Cookies.remove(key);
+// delete AsyncStorage Data
+export const deleteAsyncStorage = async (key: string): Promise<void> => {
+  try {
+    // Remove data from AsyncStorage
+    await AsyncStorage.removeItem(key);
+  } catch (error) {
+    console.error('Error deleting AsyncStorage:', error);
+  }
+};

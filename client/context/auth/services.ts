@@ -1,6 +1,6 @@
 import { User } from "../../../common/interface/User";
 import { Response } from "../../../common/types/res/response.type";
-import { setCookie } from "../../../common/utils/cookie";
+import { setAsyncStorage } from "../../../common/utils/cookie";
 import { fetcher } from "../../../common/utils/fetcher";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -24,10 +24,12 @@ class AuthServices {
           // Token
           const token = res?.data?.token;
 
-          await AsyncStorage.setItem('token', JSON.stringify(token.accessToken, token?.expiration));
 
-          await AsyncStorage.setItem('user', JSON.stringify(res?.data?.user, token?.accessToken));
+          setAsyncStorage('token', token.accessToken);
 
+          setAsyncStorage('user', res?.data?.user);
+
+       
           // Return data
           return Promise.resolve(res?.data);
      }

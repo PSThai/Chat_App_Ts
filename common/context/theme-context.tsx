@@ -11,8 +11,8 @@ interface Props {
 
 const ThemeContext: React.FC<Props> = ({ children }: Props) => {
   // Tshus Context theme
-  // const tshusTheme: ThemeEnum =
-  //   React.useContext<any>(TshusContext)?.config?.get?.theme;
+  const tshusTheme: ThemeEnum =
+    React.useContext<any>(TshusContext)?.config?.get?.theme;
 
   // Return
   return (
@@ -22,10 +22,10 @@ const ThemeContext: React.FC<Props> = ({ children }: Props) => {
     //     components: components(tshusTheme),
     //   }}
     // >
-      <App>
-        <AuthProvider>{children}</AuthProvider>
-      </App>
-    // </ConfigProvider>
+
+    <AuthProvider>{children}</AuthProvider>
+
+    //  </ConfigProvider>
   );
 };
 

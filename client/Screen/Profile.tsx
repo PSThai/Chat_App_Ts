@@ -7,6 +7,7 @@ import { AuthHookType } from 'common/types/other/hook.type';
 import { User } from 'common/interface/User';
 import { AntDesign } from '@expo/vector-icons';
 import { Radio } from 'antd';
+import EditProfileModal from './modal/EditProfileModal';
 
 const Profile = () => {
   const user: AuthHookType<User> = useAuth();
@@ -27,7 +28,6 @@ const Profile = () => {
   const goToProfile = (nav: NavType) => {
     nav.navigate("Profile");
   };
-
   const [modalVisible, setModalVisible] = useState(false);
 
   const OpenModal = () => {
@@ -61,69 +61,6 @@ const Profile = () => {
 
         </LinearGradient>
       </View>
-
-      {/* Modal */}
-      <Modal
-        animationType="none"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)} // Đóng modal khi chạm vào phần trống
-        >
-          <View style={styles.centeredView}>
-            <Text style={styles.title}>Cập nhật thông tin cá nhân</Text>
-            <View>
-              <Text style={{ paddingVertical: 8 }} >Tên</Text>
-              <TextInput
-                style={styles.input}
-                value={nickname}
-                onChangeText={setnickname}
-                placeholder={user.get?.nickname}
-              />
-            </View>
-
-            {/* <View>
-              <Text style={{ paddingVertical: 8 }} >Giới tính</Text>
-              <Radio.Group onChange={onChange} value={gender}>
-                <Radio value={"male"}>Male</Radio>
-                <Radio value={"female"}>Female</Radio>
-                <Radio value={"other"}>Other</Radio>
-              </Radio.Group>
-
-            </View> */}
-
-            <View>
-              <Text style={{ paddingVertical: 8 }}>Email</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setemail}
-                placeholder={user.get?.email}
-              />
-            </View>
-            <View>
-              <Text style={{ paddingVertical: 8 }}>Số điện thoại</Text>
-              <TextInput
-                style={styles.input}
-                value={phone}
-                onChangeText={setphone}
-                placeholder={user.get?.phone}
-              />
-            </View>
-
-            <View style={styles.buttonContainer}>
-              <Button title="Hủy" onPress={onClose} color="#ccc" />
-              <Button title="Lưu" onPress={onSave} />
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       {/*- - - - - - - - - Body - - - - - - - - -*/}
       <View style={styles.profileInfo}>
@@ -166,7 +103,11 @@ const Profile = () => {
         </View>
       </View>
 
-
+      {/* Modal */}
+      <EditProfileModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+      />
       {/* - - - - - - - - - - Footer - - - - - - - - - - - */}
 
       <View style={styles.footer}>
