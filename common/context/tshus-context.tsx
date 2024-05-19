@@ -56,7 +56,7 @@ const TshusProvider: React.FC<Props> = ({ children }: Props) => {
   // Use Effect
   React.useEffect(() => {
     // Calling connecting
-    const socket: any = io(`http://172.19.200.229:2820`);
+    const socket: any = io(`http://192.168.1.38:2820`);
 
     // Set Client
     setSocket(socket);

@@ -6,17 +6,20 @@ import { getAsyncStorage } from './cookie';
 
 
 // API Host
-const host = '172.19.200.229';
+const host = '192.168.1.38';
 
 // Server Port
 const port = '3001';
 
+// AWS_URL
+export const AWS_URL = `https://myimagechat.s3.ap-southeast-1.amazonaws.com`;
+
 // Base Url
-export const baseUrl = `http://${host}:${port}`;
+export const BASE_URL = `http://${host}:${port}`;
 
 // API api
 const api = axios.create({
-  baseURL: baseUrl,
+  baseURL: BASE_URL,
   headers: {
     //'Access-Control-Allow-Origin': '*',
     'Content-Type': 'application/json',
@@ -140,7 +143,7 @@ const DELETE = async (
 
   // Create Fetch
   const response: any = await fetch(
-    `${baseUrl}${url}${strParams ? `?${strParams}` : ''}`,
+    `${BASE_URL}${url}${strParams ? `?${strParams}` : ''}`,
     {
       method: 'DELETE',
       headers: {

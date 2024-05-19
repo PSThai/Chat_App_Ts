@@ -33,9 +33,6 @@ const Profile = () => {
   const OpenModal = () => {
     setModalVisible(true); // Hiển thị modal khi nhấn vào nút "Thêm"
   };
-  const onClose = () => {
-    setModalVisible(false);
-  }
   const onSave = () => {
 
   }

@@ -1,17 +1,27 @@
 import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import React, { useState } from 'react'
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { fetcher } from 'common/utils/fetcher';
 import { Response } from 'common/types/res/response.type';
+import authServices from "../context/auth/services"
 
-const Register = () => {
+type RootStackParamList = {
+  OtpScreen: { email: string }; // Xác định kiểu dữ liệu của 'email' là string
+  // Các màn hình khác...
+};
+
+type OtpScreenRouteProp = RouteProp<RootStackParamList, 'OtpScreen'>;
+
+interface OtpScreenProps {
+  route: OtpScreenRouteProp;
+}
+const Register: React.FC<OtpScreenProps> = ({ route }) => {
+
   const nav = useNavigation();
-
-
+  const email = route.params?.email;
   const [firstname, setfirstname] = useState("");
   const [lastname, setlastname] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setemail] = useState("");
   const [password, setPassword] = useState("");
   const [retypePassword, setRetypePassword] = useState("");
 
@@ -25,19 +35,14 @@ const Register = () => {
       password: password,
       retypePassword: retypePassword
     }
-    
-    const res: Response = await fetcher({
-      method: 'POST',
-      url: '/auth/register',
-      payload: payload
-    })
-    console.log(res?.message);
-    if (res?.status === 200) {
+    const result = await authServices.register(payload);
+
+    if (result) {
       Alert.alert(
         "Dang ky thanh cong",
         "Dang ky thanh cong vui long dang nhap!"
       );
-
+      goToChat(nav)
     }
   }
 
@@ -77,42 +82,40 @@ const Register = () => {
           }}>Đăng Ký</Text>
 
         </View>
-        <TextInput
-          style={{
-            width: "85%",
-            height: 55,
-            backgroundColor: "#ced4da",
-            borderRadius: 10,
-            margin: 13,
-            justifyContent: "center",
-            padding: 20,
-            marginBottom: 15
-          }}
-          value={firstname}
-          onChangeText={(text) => setfirstname(text)}
-          placeholder="First name"
-          placeholderTextColor="gray"
-
-
-        />
-        <TextInput
-          style={{
-            width: "85%",
-            height: 55,
-            backgroundColor: "#ced4da",
-            borderRadius: 10,
-            margin: 13,
-            justifyContent: "center",
-            padding: 20,
-            marginBottom: 15
-          }}
-          value={lastname}
-          onChangeText={(text) => setlastname(text)}
-          placeholder="last name"
-          placeholderTextColor="gray"
-
-
-        />
+        <View style={{ flexDirection: 'row' }}>
+          <TextInput
+            style={{
+              width: "40%",
+              height: 55,
+              backgroundColor: "#ced4da",
+              borderRadius: 10,
+              margin: 13,
+              justifyContent: "center",
+              padding: 20,
+              marginBottom: 15
+            }}
+            value={firstname}
+            onChangeText={(text) => setfirstname(text)}
+            placeholder="First name"
+            placeholderTextColor="gray"
+          />
+          <TextInput
+            style={{
+              width: "40%",
+              height: 55,
+              backgroundColor: "#ced4da",
+              borderRadius: 10,
+              margin: 13,
+              justifyContent: "center",
+              padding: 20,
+              marginBottom: 15
+            }}
+            value={lastname}
+            onChangeText={(text) => setlastname(text)}
+            placeholder="last name"
+            placeholderTextColor="gray"
+          />
+        </View>
         <TextInput
           style={{
             width: "85%",
@@ -125,9 +128,9 @@ const Register = () => {
             marginBottom: 15
           }}
           value={email}
-          onChangeText={(text) => setemail(text)}
           placeholder="Email"
           placeholderTextColor="gray"
+          editable={false}
         />
         <TextInput
           style={{

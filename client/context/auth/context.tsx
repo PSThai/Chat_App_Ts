@@ -44,8 +44,6 @@ const AuthProvider: React.FC<Props> = ({ children }: Props) => {
       try {
         // Get access token from AsyncStorage
         const accessToken = await getAsyncStorage('token');
-       
-        
 
         // Check access token
         if (!accessToken) {

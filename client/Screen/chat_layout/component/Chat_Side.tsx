@@ -8,12 +8,13 @@ import { Response } from 'common/types/res/response.type';
 import { Avatar, Badge, Flex, Skeleton } from 'antd';
 import { ConversationEnum } from 'common/enum/conversation.enum';
 import { ThemeEnum } from 'common/enum/theme.enum';
-import EmptyHorizontal from 'client/context/empty/horizontal.empty';
 import { useAuth } from 'client/hooks/use-auth';
 import { useConversations } from 'client/hooks/user-conversations';
 import ConversationsProvider from 'client/context/conversations-context';
 import Message from './Message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import OptionsModal from 'client/Screen/modal/OptionsModal';
+import { Roommembers } from 'common/interface/Roommembers';
 
 type Props = {
   cvsContext: any;
@@ -27,15 +28,8 @@ enum LoadingSearch {
   STATIC = 'STATIC',
 }
 
-export const ChatWrapper: FC = () => {
-  // Return
-  return (
-    <Chat_Side />
-  );
-};
-
 const Chat_Side: FC = () => {
-
+ 
   // Conversations
   const cvsContext: any = useConversations();
   // user 
@@ -61,8 +55,6 @@ const Chat_Side: FC = () => {
       setCsvLoading(true);
 
       // console.log(user.get?._id);
-
-
       // Get conversations
       const res: Response = await fetcher({
         method: 'GET',
@@ -106,8 +98,6 @@ const Chat_Side: FC = () => {
         // Handle set current cvs
         const setCurrentCvs = cvsContext.current.set;
 
-        
-
         // Check session has conversation
         if (parse?.user_id === user.get?._id && parse?.cvs) {
           // Set default current conversation
@@ -146,23 +136,13 @@ const Chat_Side: FC = () => {
     setModalVisible(true); // Hiển thị modal khi nhấn vào nút "Thêm"
   };
 
-  const handleAddChat = () => {
-    console.log("Thêm đoạn chat");
-    setModalVisible(false); // Đóng modal sau khi chọn "Thêm đoạn chat"
-  };
-
   const handleMessage = (nav: NavType, cvs: any) => {
-    // Set Cvs
+    // Set Cvs trước khi vào nhắn tin
     cvsContext.current.get?._id !== cvs?._id && cvsContext.current.set(cvs);
 
     nav.navigate("Message", null);
   }
 
-  const handleAddFriends = (nav: NavType) => {
-    console.log("Thêm bạn bè");
-    nav.navigate("Add_friend", null)
-    setModalVisible(false); // Đóng modal sau khi chọn "Thêm bạn bè"
-  };
   return (
     <SafeAreaView style={styles.container}>
       {/* - - - - - - - - - - Header - - - - - - - - - - - */}
@@ -190,37 +170,10 @@ const Chat_Side: FC = () => {
       </View>
 
       {/* Modal */}
-      <Modal
-        animationType="none"
-        transparent={true}
+      <OptionsModal
         visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)} // Đóng modal khi chạm vào phần trống
-        >
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <TouchableOpacity
-                onPress={handleAddChat}
-                style={styles.modalButton}
-              >
-                <Text>Thêm đoạn chat</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleAddFriends(nav)}
-                style={styles.modalButton}
-              >
-                <Text>Thêm bạn bè</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setModalVisible(false)}
+      />
       {/* - - - - - - - - - - Body - - - - - - - - - - - */}
       <ScrollView style={styles.body} >
         {

@@ -1,18 +1,50 @@
 import { Image, Modal, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import OptionsModal from './modal/OptionsModal';
+import { SearchBar } from 'antd-mobile';
+import { fetcher } from 'common/utils/fetcher';
+import { Response } from 'common/types/res/response.type';
+import { useAuth } from 'client/hooks/use-auth';
+import { ChaterType } from 'common/types/chat/chater.type';
 
 const Contact = () => {
   const nav = useNavigation();
-
+  // Auth
+  const auth = useAuth();
+  // List friends state
+  const [friendsList, setFriendsList] = useState<any[]>([]);
   type NavType = {
     navigate: (screen: string) => void;
   }
   const goToContact = (nav: NavType) => {
     nav.navigate("Contact");
   };
+  // Effect
+  useEffect(() => {
+    // Load friends
+    (async () => {
+      // Response
+      const res: Response = await fetcher({
+        method: 'GET',
+        url: '/friends/page',
+        payload: { user: auth?.get?._id },
+      });
 
+      if (res?.status === 200) {
+        // Set data
+        setFriendsList(res?.data);
+      }
+
+      // Return
+    })();
+  }, [auth?.get?._id]);
+  const handleListAccept = (nav: NavType) => {
+
+    nav.navigate("FriendAcceptList")
+
+  }
   const goToProfile = (nav: NavType) => {
     nav.navigate("Profile");
   };
@@ -26,20 +58,6 @@ const Contact = () => {
     nav.navigate("Chat");
   }
 
-  const handleAddChat = () => {
-    console.log("Thêm đoạn chat");
-    setModalVisible(false); // Đóng modal sau khi chọn "Thêm đoạn chat"
-  };
-
-  const handleMessage = (nav: NavType) => {
-    nav.navigate("Message");
-  }
-
-  const handleAddFriends = (nav: NavType) => {
-    console.log("Thêm bạn bè");
-    nav.navigate("Add_friend")
-    setModalVisible(false); // Đóng modal sau khi chọn "Thêm bạn bè"
-  };
   return (
     <SafeAreaView style={styles.container}>
       {/* - - - - - - - - - - Header - - - - - - - - - - - */}
@@ -66,40 +84,58 @@ const Contact = () => {
         </LinearGradient>
       </View>
 
-      {/* Modal */}
-      <Modal
-        animationType="none"
-        transparent={true}
+      <OptionsModal
         visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)} // Đóng modal khi chạm vào phần trống
-        >
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <TouchableOpacity
-                onPress={handleAddChat}
-                style={styles.modalButton}
-              >
-                <Text>Thêm đoạn chat</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleAddFriends(nav)}
-                style={styles.modalButton}
-              >
-                <Text>Thêm bạn bè</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setModalVisible(false)}
+      />
       {/* - - - - - - - - - - Body - - - - - - - - - - - */}
+      <View style={styles.body}>
+        <View style={{ paddingLeft: 20, borderBottomWidth: 1, borderColor: "#EFF0F2", paddingBottom: 10 }}>
+          <TouchableOpacity style={{ flexDirection: "row" }} onPress={() => handleListAccept(nav)}>
+            <Image
+              source={require("../../Images/people_1769041.png")}
+              style={styles.footerIcon}
+            />
+            <Text style={{ fontSize: 20, paddingLeft: 10 }}>Lời mời kết bạn</Text>
+          </TouchableOpacity>
+        </View>
 
+        <Text style={{ fontSize: 20 }}>Danh sách bạn bè</Text>
+
+        <View style={{ flexDirection: "row", justifyContent: "center", borderBottomColor: "#EFF0F2", borderBottomWidth: 3, paddingBottom: 10 }}>
+          <TextInput placeholder='Tìm kiếm ...' style={{ backgroundColor: "#EFF0F2", height: 50, width: "80%" }} />
+          <TouchableOpacity style={{ paddingTop: 10, paddingLeft: 10 }}>
+            <Image
+              source={require("../../Images/search_4687318.png")}
+              style={{ height: 30, width: 30, paddingTop: 20 }}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View>
+          {Array.from(Object.keys(friendsList))?.map((key: string, index: number) => (
+            <View key={index}>
+              <View  style={{ paddingLeft: 10, paddingTop: 20 }}>
+                <Text>{key}</Text>
+              </View>
+              {friendsList?.[key as keyof typeof friendsList]?.map((friend: ChaterType) => (
+                <TouchableOpacity key={friend.user}>
+                  <View style={{ paddingLeft: 12, marginTop: 5, flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: "gray" }}>
+                    <Image
+                      source={require('../../Images/male.png')}
+                      style={{ height: 50, width: 50, resizeMode: 'cover', marginBottom: 10 }}
+                    />
+                    <Text style={{ paddingTop: 16, paddingLeft: 10, width: 100 }}>
+                      {friend.nickname}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+
+            </View>
+          ))}
+        </View>
+      </View>
 
 
       {/* - - - - - - - - - - Footer - - - - - - - - - - - */}
@@ -141,8 +177,6 @@ const Contact = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "white",
   },
   // - - - - - - - - - - Header - - - - - - - - - -
@@ -151,7 +185,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 110,
     paddingVertical: 10,
-    position: "absolute",
+    position: "relative",
     top: -10,
   },
   gradienthead: {
@@ -206,7 +240,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   // - - - - - - - - - - Body - - - - - - - - - -
+  body: {
+    flex: 1,
 
+  },
   // - - - - - - - - - - Footer - - - - - - - - - -
   footer: {
     overflow: "hidden",

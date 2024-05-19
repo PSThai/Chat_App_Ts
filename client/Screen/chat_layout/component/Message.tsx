@@ -2,35 +2,27 @@ import { Alert, Image, KeyboardAvoidingView, Pressable, SafeAreaView, ScrollView
 import React, { FC, useEffect, useLayoutEffect, useState } from 'react'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Entypo } from '@expo/vector-icons';
 import { AntDesign } from '@expo/vector-icons';
 import { Feather } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import { Messages } from 'common/interface/Messages';
 import { useConversations } from 'client/hooks/user-conversations';
 import { useAuth } from 'client/hooks/use-auth';
-import { ConversationEnum } from 'common/enum/conversation.enum';
-import { Conversations } from 'common/interface/Conversations';
 import { fetcher } from 'common/utils/fetcher';
 import { Response } from 'common/types/res/response.type';
 import { UploadFile } from 'antd';
 import Chat_Line from './Chat_Line';
-import { Divider, InfiniteScroll } from 'antd-mobile';
+
 import { useSocket } from 'common/hooks/use-socket';
 import { Socket } from 'socket.io-client';
 import { MessageType } from 'common/enum/message-type';
 import EmojiSelector from 'react-native-emoji-selector';
-
-
-export const Chat_Content: FC = () => {
-    return (
-        <Message />
-    )
-
-}
+import { ConversationEnum } from 'common/enum/conversation.enum';
+import { Roommembers } from 'common/interface/Roommembers';
 
 const Message: FC = () => {
-    //const route = useRoute();
+    // Roommembers State
+    const [roommembers, setRoommembers] = useState<Roommembers[] | []>([]);
     // Socket
     const socket: Socket = useSocket();
     // const cvsId = route.params;
@@ -51,11 +43,10 @@ const Message: FC = () => {
 
     // File list
     const [imageList, setImageList] = useState<UploadFile[]>([]);
+    // Current conversation id
+    const cvsId: string = cvsContext.current.get?._id;
 
     useEffect(() => {
-        // Current conversation id
-        const cvsId: string = cvsContext.current.get?._id;
-
         // Caling
         cvsId &&
             (async () => {
@@ -67,8 +58,10 @@ const Message: FC = () => {
                 });
 
                 // Check status
-                if (res?.status === 200) setMessages(res?.data);
+                if (res?.status === 200)
+                    setMessages(res?.data);
             })();
+
 
         // Return clean
         return () => {
@@ -84,6 +77,7 @@ const Message: FC = () => {
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cvsContext.current.get]);
+
     // First Loading Use Effect
     useEffect(() => {
         // Check socket connected
@@ -110,7 +104,6 @@ const Message: FC = () => {
                 }
             });
         }
-
         // Cleanup
         return () => {
             socket?.off('chats');
@@ -206,7 +199,7 @@ const Message: FC = () => {
         // Handle messages promise
         promise()
             .then((res) => {
-                
+
 
                 socket.emit('chat-message', res);
             })
@@ -216,9 +209,20 @@ const Message: FC = () => {
             });
 
     }
-    const cvs = cvsContext.current.get;
+    const cvs = cvsContext.current.get
+    // Is Rooms
+    const isRooms = cvs?.type === ConversationEnum.ROOMS;
 
-    const data = cvsContext.current.get?.chats?.[0]
+    const chats = cvs?.chats?.[0];
+
+    const isInviter = user.get?._id === chats?.inviter?.user;
+
+    const cvsName = isRooms
+        ? cvs?.rooms[0]?.name
+        : isInviter
+            ? chats?.friend?.nickname
+            : chats?.inviter?.nickname;
+
     // Data
     const nav = useNavigation();
 
@@ -226,14 +230,44 @@ const Message: FC = () => {
         navigate: (screen: string) => void;
     }
     const goback = (nav: NavType) => {
+        cvsContext.current.set([])
         nav.navigate("Chat");
     };
 
     const [showEmojiSelector, setshowEmojiSelector] = useState(false);
 
     const handleEmoji = () => {
+
         setshowEmojiSelector(!showEmojiSelector);
     }
+    // Use Effect
+    useEffect(() => {
+        // Load roommembers
+        cvsContext.current.get?.type === ConversationEnum.ROOMS &&
+            (async () => {
+                // Response
+                const res: Response = await fetcher({
+                    method: 'GET',
+                    url: '/roommembers/page',
+                    payload: { room: cvsContext.current.get?.rooms?.[0]?._id, page: 1 },
+                });
+
+                // If response success
+                if (res?.status === 200) {
+                    // Set members
+                    setRoommembers(res?.data);
+                }
+            })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cvsContext.current.get?.type]);
+    
+    // Data
+    const data = isRooms
+        ? cvs?.rooms?.[0]
+        : isInviter
+            ? cvs?.chats?.[0]?.friend
+            : cvs?.chats?.[0]?.inviter;
+
 
     return (
 
@@ -255,14 +289,28 @@ const Message: FC = () => {
                             style={styles.headerIcon}
                         />
                     </TouchableOpacity>
+
                     <Image
                         source={require("../../../../Images/male.png")}
                         style={{ height: 50, width: 50, resizeMode: 'cover', marginTop: 40 }}
                     />
-                    <Text style={{ marginTop: 40, fontWeight: 'bold', fontSize: 17, color: 'white' }}> {data?.friend?.nickname}</Text>
-                    <Ionicons name="call-outline" size={24} color="white" style={{ marginLeft: 80, marginTop: 42 }} />
-                    <Feather name="video" size={24} color="white" style={{ marginLeft: 15, marginTop: 43 }} />
-                    <Ionicons name="menu-outline" size={30} color="white" style={{ marginLeft: 15, marginTop: 43 }} />
+
+                    <View style={{ flexDirection: 'column' }}>
+                        <Text style={{ marginTop: 40, fontWeight: 'bold', fontSize: 17, color: 'white', paddingLeft: 15 }}>{cvsName}</Text>
+                        {isRooms && (
+                            <Text style={{ fontSize: 13.5, fontWeight: '400', color: "white", paddingLeft: 7 }}>
+                                {data?.members_count}3 thành viên
+                            </Text>
+                        )}
+                    </View>
+
+                    <TouchableOpacity>
+                        <Image
+                            source={require("../../../../Images/menu.png")}
+                            style={{ height: 20, width: 20, marginLeft: 150, marginTop: 40, }}
+                        />
+                    </TouchableOpacity>
+
                 </LinearGradient>
             </View>
 
@@ -296,8 +344,13 @@ const Message: FC = () => {
 
 
             <View style={styles.viewText} >
+                <TouchableOpacity onPress={handleEmoji}>
+                    <Image
+                        source={require("../../../../Images/emoji.png")}
+                        style={{ width: 30, height: 30, marginRight: 10 }}
+                    />
+                </TouchableOpacity>
 
-                <Entypo style={{ marginRight: 10 }} name="emoji-happy" size={24} color="black" onPress={handleEmoji} />
 
                 <TextInput style={styles.inputMessage}
                     placeholder='Nhập tin nhắn.....'
@@ -355,7 +408,7 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     headerIcon: {
-        marginTop: 40,
+        marginTop: 60,
         margin: 20,
         resizeMode: "contain",
         height: 25,
@@ -369,7 +422,7 @@ const styles = StyleSheet.create({
     },
     body: {
         // top:47,
-        height: "64%",
+        height: "67%",
         paddingLeft: 10,
         width: "100%",
         // bottom:47,

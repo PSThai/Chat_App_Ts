@@ -111,7 +111,7 @@ const Add_Friend = () => {
                 console.error('Mở tin nhắn thất bại');
             } else {
                 // Cancel
-                nav.navigate("Chat_content");
+                nav.navigate("Message");
 
                 closeModal();
             }
