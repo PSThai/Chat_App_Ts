@@ -51,9 +51,11 @@ const ConversationsProvider: React.FC<Props> = ({ children }: Props) => {
     }
 
   };
-
-  // Ham nay de "luu vao" storage de moi khi load lai trang no khong bi chuyen sang chat khac
-  // Luu ca user id vao, neu la nguoi dung do thi load ra, neu khong phai thi khong load
+  // Update list conversation
+  const updateListCvs = (cvs: Conversations) => {
+    // Set new conversation
+    setConversations((prev) => prev?.map((item) => item?._id === cvs?._id ? cvs : item));
+  };
 
   // Handle set current conversation
   const hanleSetCurrentCvs = async (cvs: Conversations) => {
@@ -62,9 +64,6 @@ const ConversationsProvider: React.FC<Props> = ({ children }: Props) => {
       'tshus.current.conversation', // Corrected key
       JSON.stringify({ user_id, cvs })
     );
-
-    // console.log("Chạy dô đây", cvs);
-
     // Set current cvs
     setCurrentCvs(cvs);
   }
@@ -73,6 +72,7 @@ const ConversationsProvider: React.FC<Props> = ({ children }: Props) => {
     list: {
       get: conversations,
       set: setConversations,
+      update: updateListCvs,
     },
     current: {
       get: currentCvs,

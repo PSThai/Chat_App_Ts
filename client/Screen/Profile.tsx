@@ -5,13 +5,18 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from 'client/hooks/use-auth';
 import { AuthHookType } from 'common/types/other/hook.type';
 import { User } from 'common/interface/User';
-import { AntDesign } from '@expo/vector-icons';
-import { Radio } from 'antd';
 import EditProfileModal from './modal/EditProfileModal';
+import { logout } from 'client/context/auth/reducers';
+import { TshusSocket } from 'common/types/other/socket.type';
+import { useSocket } from 'common/hooks/use-socket';
 
 const Profile = () => {
-  const user: AuthHookType<User> = useAuth();
+    // Auth
+    const user: AuthHookType<User> = useAuth();
+
   const nav = useNavigation();
+  // Socket
+  const socket: TshusSocket = useSocket();
 
   const [nickname, setnickname] = React.useState("");
   const [email, setemail] = React.useState("");
@@ -38,6 +43,17 @@ const Profile = () => {
   }
   const gotoChat = (nav: NavType) => {
     nav.navigate("Chat");
+  }
+  const handleSignOut = (nav: NavType) => {
+    
+    // Logout
+    if (user?.set) {
+      user.set(logout());
+
+      // Socket
+      socket?.disconnect();
+    }
+    nav.navigate("Login");
   }
   const onChange = () => {
     setgender(gender);
@@ -88,14 +104,39 @@ const Profile = () => {
             <Text style={{ fontWeight: 'bold' }}>{user.get?.phone}</Text>
           </View>
 
-          <TouchableOpacity style={{ alignItems: "center", justifyContent: 'center', paddingTop: 15, flexDirection: "row" }} onPress={OpenModal}>
-            <AntDesign name="edit" size={24} color="black" />
+          <TouchableOpacity 
+          style={{ alignItems: "center", 
+          justifyContent: 'center', 
+          paddingTop: 15, 
+          flexDirection: "row", borderBottomWidth: 1,  borderColor: "#EFF0F2", paddingBottom:10 }} onPress={OpenModal}>
+
+            <Image
+              source={require('../../Images/edit_12000663.png')}
+              style={{ height: 30, width: 30, resizeMode: 'cover' }}
+            />
             <Text style={{
               textAlign: "center",
               fontSize: 17,
               fontWeight: "bold",
               paddingLeft: 5
-            }}>Cập nhập thông tin</Text>
+            }}
+            >Cập nhập thông tin</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+          style={{ alignItems: "center", justifyContent: 'center', paddingTop: 15, flexDirection: "row" }}
+          onPress={() => handleSignOut(nav)}
+          >
+            <Text style={{
+              textAlign: "center",
+              fontSize: 17,
+              fontWeight: "bold",
+              paddingLeft: 5,
+              color:"red",
+              fontStyle:'italic'
+            }}>
+              Đăng Xuất
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

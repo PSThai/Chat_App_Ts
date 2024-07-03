@@ -1,10 +1,11 @@
 import { PayloadAction } from '../../../client/context/auth/context';
-import { Dispatch } from 'react';
+import { Dispatch, SetStateAction } from 'react';
 import { AuthState } from '../auth/types';
 
 export interface HookType<T> {
   get: T | undefined | null | any;
-  set?: Dispatch<T>;
+  set?: Dispatch<SetStateAction<T>>;
+  update?: Function | null;
 }
 
 export interface SpecialHookType<T> {

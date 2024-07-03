@@ -4,10 +4,9 @@ export interface AuthState {
   username?: string;
   password?: string;
   roles?: string[];
-  firstname?: string;
-  lastname?: string;
-  phone?: number;
+  nickname?: string;
+  phone?: string;
   avatar?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 }
