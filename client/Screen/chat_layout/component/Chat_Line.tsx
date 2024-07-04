@@ -1,5 +1,5 @@
-import { Image, StyleSheet, Text, View } from 'react-native'
-import React, { useState } from 'react'
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import React, { useRef, useState } from 'react'
 import { useConfig } from 'common/hooks/use-config';
 import { ThemeEnum } from 'common/enum/theme.enum';
 import { useAuth } from 'client/hooks/use-auth';
@@ -8,6 +8,15 @@ import { Conversations } from 'common/interface/Conversations';
 import { theme } from 'antd';
 import { MessageType } from 'common/enum/message-type';
 import { AWS_URL, BASE_URL, fetcher } from "common/utils/fetcher";
+import { MesssageState } from 'common/enum/message-state';
+import { Response } from 'common/types/res/response.type';
+import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
+import { TshusSocket } from 'common/types/other/socket.type';
+import { useSocket } from 'common/hooks/use-socket';
+import { MesssageActionEnum } from 'common/enum/message-actions.enum';
+import Toast from 'react-native-toast-message';
+
+
 
 type Props = { data: any };
 
@@ -24,7 +33,7 @@ type TextMessage = {
     isSender: boolean;
 };
 
-// // Download file
+// // // Download file
 // const download = (file: any) => {
 //     fetch(`${AWS_URL}/${file.filename}`)
 //         .then((response) => response.blob())
@@ -41,8 +50,84 @@ type TextMessage = {
 // };
 
 const { useToken } = theme;
+// Message Node
+const MessageNode = ({ data, token, isSender }: any) => {
+    const justify = isSender ? 'flex-end' : 'flex-start';
+    // Return
+    return (
+        <View style={{ justifyContent: `${justify}` }}>
+            {data?.type === MessageType.TEXT ? (
+                <MessageTextLine
+                    token={token}
+                    isSender={isSender}
+                    msg={data?.messages}
+                />
+            ) : (
+                <MessageFileLine
+                    token={token}
+                    isSender={isSender}
+                    files={data?.files}
+                />
+            )}
+        </View>
+    );
+}
+const UnsendMessage: React.FC<any> = ({ isSender, token, msg }: TextMessage) => {
+    // Config
+    const config: any = useConfig();
+
+    // ligght theme
+    const isLight: boolean = config?.theme === ThemeEnum.LIGHT;
+
+    // Return
+    return (
+        <View
+            style={{
+                height: 40,
+                borderRadius: 5,
+                padding: 8,
+                position: "relative",
+                marginRight: 12,
+                borderColor: `${token.colorBorder}`,
+                backgroundColor: "gray"
+            }}
+        >
+            {isSender ? (
+                <Text
+                    style={{
+                        color: `${token.colorText}`
+                    }}
+                >
+                    {msg}
+                </Text>
+            ) : (
+                <Text
+                    style={{
+                        color: `${isLight ? '#000' : 'rgb(97, 97, 97)'}`
+                    }}
+                >
+                    {msg}
+                </Text>
+            )}
+        </View>
+    );
+};
+const renderMessage = (props: any) => {
+    // Check sw
+    switch (props.data.state) {
+        case MesssageState.RECEIVER:
+            return !props.isSender ? <MessageNode {...props} /> : <UnsendMessage isSender={props.isSender} token={props.token} msg="Tin nhắn đã bị xoá" />;
+        case MesssageState.NONE:
+            return <UnsendMessage isSender={props.isSender} token={props.token} msg="Tin nhắn đã bị thu hồi" />;
+        default:
+            return <MessageNode {...props} />
+    }
+}
 
 const Chat_Line = ({ data }: Props) => {
+
+    // Socket
+    const socket: TshusSocket = useSocket();
 
     const { token } = useToken();
     // User
@@ -59,47 +144,93 @@ const Chat_Line = ({ data }: Props) => {
 
     const showModal = () => setTranfModelOpen(true);
 
+    // Handle deleteMessage
+    const handleDelteMessage = async () => {
+        // Exception
+        try {
+            // Check socket
+            if (socket) {
+                // Send socket
+                socket?.emit('chat.actions:server', {
+                    message: data,
+                    action: MesssageActionEnum.DELETE,
+                });
+            }
+        } catch (error) {
+            // Show error
+            Toast.show({
+                type: 'error',
+                text1: "Xóa tin nhắn thất bại",
+                visibilityTime:1000
+            })
+        }
+    };
 
-    // Config
-    const config = useConfig();
-    // Handle transfer conversation
-    const handleTranfCvs = (transf: Conversations) => setTransfCvs(transf);
+    // Handle unMessage
+    const handleUnmessage = async () => {
+        // Exception
+        try {
+            // Check socket
+            if (socket) {
+                // Send socket
+                socket?.emit('chat.actions:server', {
+                    message: data,
+                    action: MesssageActionEnum.UNMESSAGE,
+                });
+            }
+        } catch (error) {
+            // Show error
+            Toast.show({
+                type: 'error',
+                text1: "Thu hồi tin nhắn thất bại",
+                visibilityTime:1000
+            })
+        }
+    };
+    const menuRef = useRef<Menu>(null);
 
+    const handlePress = () => {
+        menuRef.current!.open(); // Mở menu khi tin nhắn được chạm
+    };
     const justify = isSender ? 'flex-end' : 'flex-start';
 
     return (
         <View >
-            <View style={{ alignSelf: `${justify}` }}>
+            <View style={{ alignSelf: `${justify}`, marginBottom: 7 }}>
                 <View >
                     <Text
-                        style={{ alignSelf: `${justify}`, fontSize: 12.5, marginRight: 12 }}
-
+                        style={{ alignSelf: `${justify}`, fontSize: 12.5, marginRight: 10 }}
                     >
                         {data?.sender?.nickname}
                     </Text>
+                    
+                    <Menu ref={menuRef}>
+                        <MenuTrigger customStyles={triggerStyles}>
+                            <TouchableOpacity style={{}} onLongPress={handlePress}>
+                                <View style={{ alignSelf: `${justify}` }}>
+                                    {renderMessage({ data, justify, token, isSender })}
+                                </View>
+                            </TouchableOpacity>
+                        </MenuTrigger>
+                        <MenuOptions customStyles={optionsStyles}>
+                            <MenuOption onSelect={handleDelteMessage}>
+                                <Text style={{}}>Xóa</Text>
+                            </MenuOption>
+                            <MenuOption onSelect={() => alert('Chuyển tiếp')}>
+                                <Text style={{}}>Chuyển tiếp</Text>
+                            </MenuOption>
+                            <MenuOption onSelect={handleUnmessage}>
+                                <Text style={{}}>Thu hồi</Text>
+                            </MenuOption>
 
-                    <View style={{ alignSelf: `${justify}` }}>
-                        {data?.type === MessageType.TEXT ? (
-                            <MessageTextLine
-                                token={token}
-                                isSender={isSender}
-                                msg={data?.messages}
-                            />
-                        ) : (
-                            <MessageFileLine
-                                token={token}
-                                isSender={isSender}
-                                files={data?.files}
-                            />
-                        )}
-
-
-                    </View>
+                        </MenuOptions>
+                    </Menu>
                 </View>
             </View>
         </View>
     )
 }
+
 const MessageTextLine: React.FC<any> = ({
     isSender,
     token,
@@ -161,69 +292,100 @@ const MessageFileLine: React.FC<FileMessage> = ({
     msg,
 }: FileMessage) => {
 
+
     const config: any = useConfig();
 
-    // light theme
+    // ligght theme
     const isLight: boolean = config?.theme === ThemeEnum.LIGHT;
 
+    const colors: string = isSender
+        ? '#87CEFA'
+        : '#fff';
     // Color text
     const color: string = isSender ? 'white' : 'rgb(97, 97, 97)';
 
     return (
-        <View>
-            {files?.map((file: any, index: number) =>
-                !file.mimetype.startsWith('image') ? (
-                    <View key={index} style={{ display: 'flex', justifyContent: isSender ? "flex-end" : "flex-start" }}>
-                        <Text style={{ color: color, fontSize: 14 }}>
-                            {file.originalname}
-                        </Text>
-                        <Text style={{ color: color, fontSize: 9 }}>{file.size}</Text>
+        <View
+            style={{
+                position: "relative",
+                backgroundColor: `${colors}`,
+                marginRight: 12,
+                padding: 6,
+                borderRadius: 5,
+            }}>
+            {files?.map((file: any, index: number) => (
+                <View key={index} style={{ display: 'flex' }}>
+                    <View
+                        // onPress={() => download(file)}
+                        style={{ justifyContent: isSender ? "flex-end" : "flex-start" }}>
+                        {!file.mimetype.startsWith('image') ? (
+                            <>
+                                <View>
+                                    <View style={{ flexDirection: 'column' }}>
+                                        <Text style={[styles.fileName, { color }]}>
+                                            {file.originalname}
+                                        </Text>
+
+                                        <View style={{ justifyContent: 'space-between' }}>
+                                            <Text style={[styles.fileSize, { color }]}>{file.size} Kb</Text>
+                                            <Image
+                                                source={require("../../../../Images/download.png")}
+                                                style={{ width: 30, height: 30, }}
+                                            />
+                                        </View>
+                                    </View>
+
+                                </View>
+                            </>
+                        ) : (
+                            <Image
+                                style={styles.image}
+                                source={{ uri: `${AWS_URL}/${file.filename}` }}
+                                onError={() => console.log('Error loading image')}
+                            />
+                        )}
                     </View>
-                ) : (
-                    <View key={index} style={{}}>
-                        <Image
-                            style={styles.image}
-                            source={{ uri: `${AWS_URL}/${file.filename}` }}
-                            onError={() => console.log('Error loading image')}
-                        />
-                    </View>
-                ),
-            )}
-            {msg?.trim() !== '' && (
-                <View style={{ padding: 5 }}>
+                </View>
+            ))}
+            {/* {msg?.trim() !== '' && (
+                <View style={styles.messageContainer}>
                     <MessageTextLine token={token} isSender={isSender} msg={msg} />
                 </View>
-            )}
+            )} */}
         </View>
     );
 };
-
+const optionsStyles = {
+    optionsContainer: {
+        padding: 5,
+        width: 120,
+    },
+    optionWrapper: {
+        margin: 5,
+    },
+};
+const triggerStyles = {
+    triggerTouchable: {
+        activeOpacity: 1,
+        underlayColor: 'transparent',
+    },
+};
 const styles = StyleSheet.create({
-    container: {
-        padding: 10
+    fileName: {
+        fontSize: 14,
     },
-    nickname: {
-        fontSize: 12.5,
-        marginRight: 12
-    },
-    messageTextLine: {
-        height: 40,
-        borderRadius: 5,
-        padding: 8,
-        position: "relative",
-        marginRight: 12
-    },
-    senderText: {
-        color: 'white'
-    },
-    receiverText: {
-        color: 'rgb(97, 97, 97)'
+    fileSize: {
+        fontSize: 12,
+        alignSelf: 'flex-end'
     },
     image: {
-        height: 200,
         width: 200,
-        resizeMode: 'contain',
-        borderRadius: 5
-    }
+        height: 200,
+        resizeMode: 'cover',
+        borderRadius: 10,
+    },
+    messageContainer: {
+        padding: 5,
+    },
 });
 export default Chat_Line

@@ -16,7 +16,8 @@ import ThemeContext from 'common/context/theme-context';
 import CreateGroup from 'client/Screen/CreateGroup';
 import FriendAcceptList from 'client/Screen/friendAcceptList/FriendAcceptList';
 import OtpScreen from 'client/Screen/OtpScreen';
-
+import { MenuProvider } from 'react-native-popup-menu';
+import Toast from "react-native-toast-message"
 const Stack = createNativeStackNavigator();
 
 const StackNavigator = () => {
@@ -28,18 +29,21 @@ const StackNavigator = () => {
                 <ThemeContext>
                     <AuthProvider>
                         <ConversationsProvider>
-                            <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-                                <Stack.Screen name='Login' component={Login} />
-                                <Stack.Screen name='OtpScreen' component={OtpScreen} />
-                                <Stack.Screen name='Register' component={Register} />
-                                <Stack.Screen name='Chat' component={Chat_Side} />
-                                <Stack.Screen name='Profile' component={Profile} />
-                                <Stack.Screen name='Contact' component={Contact} />
-                                <Stack.Screen name='Add_friend' component={Add_Friend} />
-                                <Stack.Screen name='CreateGroup' component={CreateGroup} />
-                                <Stack.Screen name='FriendAcceptList' component={FriendAcceptList} />
-                                <Stack.Screen name='Message' component={Message} />
-                            </Stack.Navigator>
+                            <MenuProvider>
+                                <Toast />
+                                <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+                                    <Stack.Screen name='Login' component={Login} />
+                                    <Stack.Screen name='OtpScreen' component={OtpScreen} />
+                                    <Stack.Screen name='Register' component={Register} />
+                                    <Stack.Screen name='Chat' component={Chat_Side} />
+                                    <Stack.Screen name='Profile' component={Profile} />
+                                    <Stack.Screen name='Contact' component={Contact} />
+                                    <Stack.Screen name='Add_friend' component={Add_Friend} />
+                                    <Stack.Screen name='CreateGroup' component={CreateGroup} />
+                                    <Stack.Screen name='FriendAcceptList' component={FriendAcceptList} />
+                                    <Stack.Screen name='Message' component={Message} />
+                                </Stack.Navigator>
+                            </MenuProvider>
                         </ConversationsProvider>
                     </AuthProvider>
                 </ThemeContext>

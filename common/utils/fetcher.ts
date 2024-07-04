@@ -6,10 +6,10 @@ import { getAsyncStorage } from './cookie';
 
 
 // API Host
-const host = '192.168.1.38';
+const host = '172.20.10.2';
 
 // Server Port
-const port = '3001';
+const port = '8080';
 
 // AWS_URL
 export const AWS_URL = `https://myimagechat.s3.ap-southeast-1.amazonaws.com`;
@@ -138,8 +138,7 @@ const DELETE = async (
 
   // Token
   // const accessToken: string | null = getCookie('token')?.accessToken;
-  const accessToken = await AsyncStorage.getItem('token');
-
+  const accessToken = await getAsyncStorage('token');
 
   // Create Fetch
   const response: any = await fetch(

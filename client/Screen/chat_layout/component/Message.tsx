@@ -2,9 +2,6 @@ import { Alert, Image, KeyboardAvoidingView, Pressable, SafeAreaView, ScrollView
 import React, { FC, useEffect, useLayoutEffect, useState } from 'react'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { AntDesign } from '@expo/vector-icons';
-import { Feather } from '@expo/vector-icons';
-import { Ionicons } from '@expo/vector-icons';
 import { Messages } from 'common/interface/Messages';
 import { useConversations } from 'client/hooks/user-conversations';
 import { useAuth } from 'client/hooks/use-auth';
@@ -12,13 +9,20 @@ import { fetcher } from 'common/utils/fetcher';
 import { Response } from 'common/types/res/response.type';
 import { UploadFile } from 'antd';
 import Chat_Line from './Chat_Line';
-
 import { useSocket } from 'common/hooks/use-socket';
 import { Socket } from 'socket.io-client';
 import { MessageType } from 'common/enum/message-type';
 import EmojiSelector from 'react-native-emoji-selector';
 import { ConversationEnum } from 'common/enum/conversation.enum';
 import { Roommembers } from 'common/interface/Roommembers';
+import { MesssageActionEnum } from 'common/enum/message-actions.enum';
+import { MesssageState } from 'common/enum/message-state';
+import { ConversationType } from 'common/types/conversation/cvs.type';
+import { SocketProps } from 'common/types/other/socket.type';
+import { useOnline } from 'common/context/use-online';
+import { isOnline } from 'common/utils/ultils';
+import { Rooms } from 'common/interface/Rooms';
+import Toast from 'react-native-toast-message';
 
 const Message: FC = () => {
     // Roommembers State
@@ -27,7 +31,8 @@ const Message: FC = () => {
     const socket: Socket = useSocket();
     // const cvsId = route.params;
     // Conversations
-    const cvsContext: any = useConversations();
+    // Conversations
+    const cvsContext: ConversationType = useConversations();
     // user 
     const user: any = useAuth();
 
@@ -45,7 +50,8 @@ const Message: FC = () => {
     const [imageList, setImageList] = useState<UploadFile[]>([]);
     // Current conversation id
     const cvsId: string = cvsContext.current.get?._id;
-
+    // Onlines
+    const onlines: SocketProps[] = useOnline();
     useEffect(() => {
         // Caling
         cvsId &&
@@ -83,30 +89,98 @@ const Message: FC = () => {
         // Check socket connected
         if (socket) {
             // Subscribes events
-            socket?.on('chats', async (mes: Messages) => {
-                // Check conversation
-                if (mes?.conversation === cvsContext.current.get?._id) {
+            socket?.on('chat:client', async (mes: Messages) => {
+                // Find conversation
+                const find = cvsContext.list.get?.find(
+                    (item) => item._id === mes.conversation,
+                );
+
+                // Check find
+                if (find) {
                     // Destructure
-                    const { last_message, ...data } = mes;
+                    const { last_message, ...data }: Messages = mes;
 
                     // Updated conversation
                     const updated = {
-                        ...cvsContext.current.get,
+                        ...find,
                         last_message,
                         last_send: data.send_at,
                     };
 
-                    // Set current conversation
-                    await cvsContext.current.update(updated);
+                    // Check conversation
+                    if (mes?.conversation === cvsContext.current.get?._id) {
+                        // Set current conversation
+                        await cvsContext.current.update(updated);
 
-                    // Set message
-                    setMessages((prev) => [data, ...prev]);
+                        // Set message
+                        setMessages((prev) => [data, ...prev]);
+                    } else {
+                        // Set current conversation
+                        await cvsContext.list.update(updated);
+                    }
                 }
             });
+            // Chat actions client
+            socket?.on(
+                'chat.actions:client',
+                async (client: { action: MesssageActionEnum; message: Messages }) => {
+                    // Client message
+                    const mes = client?.message;
+
+                    // Check conversation
+                    if (mes?.conversation === cvsContext.current.get?._id) {
+                        // Check is not tranfert
+                        if (client?.action === MesssageActionEnum.TRANSFERT) {
+                            // Update conversation last message
+                            // cvsContext.current.update({
+                            //   ...tranfCvs,
+                            //   last_message: res.data.last_message,
+                            //   last_send: res.data.send_at,
+                            // });
+                        } else {
+                            // Set message
+                            setMessages((prev) => {
+                                // Filter message
+                                const newMessages = prev
+                                    ?.map((mesa) => {
+                                        // Check message
+                                        if (mesa?._id === mes?._id) {
+                                            // Updated message
+                                            return {
+                                                ...mesa,
+                                                state: mes.state,
+                                            };
+                                        }
+
+                                        // Return
+                                        return mesa;
+                                    })
+                                    ?.filter((mesa) => mesa !== null) as Messages[];
+
+                                // Rreturn
+                                return newMessages;
+                            });
+                        }
+                        // Check and show message
+                        Toast.show({
+                            type: 'success',
+                            text1:
+                                client?.action === MesssageActionEnum.TRANSFERT
+                                    ? 'Chuyển tiếp tin nhán thành công'
+                                    : client?.action === MesssageActionEnum.DELETE
+                                        ? 'Xoá tin nhán thành công'
+                                        : 'Thu hồi tin nhán thành công',
+                            visibilityTime:1000,
+                        })
+                    }
+                },
+            );
         }
+
         // Cleanup
         return () => {
-            socket?.off('chats');
+            socket?.off('chat:client');
+            socket?.off('chat.actions:client');
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cvsContext.current.get, socket]);
@@ -127,7 +201,12 @@ const Message: FC = () => {
                 // Check message valid
                 const isValid = Boolean(message) && message.trim() !== '';
                 if (!isValid) {
-                    Alert.alert('Lỗi', 'Vui lòng nhập tin nhắn.');
+                    Toast.show({
+                        type: 'error',
+                        text1: "Gửi tin nhắn thất bại",
+                        text2: "Vui lòng nhập tin nhắn!",
+                        visibilityTime:1000
+                    })
                 } else {
                     // Create message info
                     const info: Messages = {
@@ -137,6 +216,7 @@ const Message: FC = () => {
                             avatar: _user?.avatar,
                             nickname: _user?.nickname,
                         },
+                        state: MesssageState.BOTH,
                         messages: message.trim(),
                         conversation: cvsContext.current.get?._id,
                         type: hasFile ? MessageType.FILES : MessageType.TEXT,
@@ -190,28 +270,20 @@ const Message: FC = () => {
                     // Resject
                     reject();
                 }
-
-
-
             });
         };
-
         // Handle messages promise
         promise()
             .then((res) => {
-
-
-                socket.emit('chat-message', res);
+                // Send Message
+                socket.emit('chat:server', res);
             })
-            .catch((err) => {
-                console.log("Error ", err);
-
-            });
+            .catch(() => { });
 
     }
     const cvs = cvsContext.current.get
     // Is Rooms
-    const isRooms = cvs?.type === ConversationEnum.ROOMS;
+    const isRooms: boolean = cvs?.type === ConversationEnum.ROOMS;
 
     const chats = cvs?.chats?.[0];
 
@@ -260,7 +332,8 @@ const Message: FC = () => {
             })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cvsContext.current.get?.type]);
-    
+
+
     // Data
     const data = isRooms
         ? cvs?.rooms?.[0]
@@ -271,7 +344,7 @@ const Message: FC = () => {
 
     return (
 
-        <KeyboardAvoidingView enabled
+        <View
             style={styles.container}
         >
 
@@ -296,11 +369,36 @@ const Message: FC = () => {
                     />
 
                     <View style={{ flexDirection: 'column' }}>
-                        <Text style={{ marginTop: 40, fontWeight: 'bold', fontSize: 17, color: 'white', paddingLeft: 15 }}>{cvsName}</Text>
-                        {isRooms && (
-                            <Text style={{ fontSize: 13.5, fontWeight: '400', color: "white", paddingLeft: 7 }}>
-                                {data?.members_count}3 thành viên
-                            </Text>
+                        <Text style={{ marginTop: 40, fontWeight: 'bold', fontSize: 17, color: 'white', paddingLeft: 13 }}>{cvsName}</Text>
+
+                        {isOnline(onlines, isRooms, data) ? (
+                            <View>
+                                {isRooms ? (
+                                    <Text
+                                        style={{ fontSize: 13, color: "white", paddingLeft: 15 }} >
+                                        {(data as Rooms)?.members_count}3 thành viên
+                                    </Text>
+                                ) : (
+                                    <Text style={{ fontSize: 13, color: "white", paddingLeft: 15 }}>
+                                        đang hoạt động
+                                    </Text>
+                                )}
+                            </View>
+                        ) : (
+                            <View>
+                                {isRooms ? (
+                                    <Text
+                                        style={{ fontSize: 13.5, fontWeight: '400' }} >
+                                        {(data as Rooms)?.members_count} thành viên
+                                    </Text>
+                                ) : (
+                                    <Text style={{ fontSize: 13, color: "white", paddingLeft: 15 }}>
+                                        đang ngoại tuyến
+                                    </Text>
+                                )}
+                            </View>
+
+
                         )}
                     </View>
 
@@ -312,73 +410,82 @@ const Message: FC = () => {
                     </TouchableOpacity>
 
                 </LinearGradient>
-            </View>
+            </View >
+            <KeyboardAvoidingView
+                style={styles.body}
+                enabled>
+                <ScrollView
+                >
+                    {/* Cho nay hien tin nhan */}
+                    {messages.length > 0 ? (
+                        <View
+                            style={{
+                                display: 'flex',
+                                //flexDirection: 'column',
 
-            <ScrollView style={styles.body}
-            >
-                {/* Cho nay hien tin nhan */}
-                {messages.length > 0 ? (
-                    <View
-                        style={{
-                            display: 'flex',
-                            //flexDirection: 'column',
+                            }}
+                        >
+                            {messages.slice().reverse().map((msg) => (
+                                <Chat_Line key={msg._id} data={msg} />
+                            ))}
 
-                        }}
-                    >
-                        {messages.slice().reverse().map((msg) => (
-                            <Chat_Line key={msg._id} data={msg} />
-                        ))}
+                        </View>
+                    ) : (
+                        <View>
+                            <Text> Không có tin nhắn nào</Text>
+                        </View>
 
-                    </View>
-                ) : (
-                    <View>
-                        <Text> Không có tin nhắn nào</Text>
-
-                    </View>
-
-                )
-                }
+                    )
+                    }
+                </ScrollView >
 
 
-            </ScrollView >
+                <View style={styles.viewText} >
+
+                    <TouchableOpacity onPress={handleEmoji}>
+                        <Image
+                            source={require("../../../../Images/emoji.png")}
+                            style={{ width: 30, height: 30, marginRight: 10 }}
+                        />
+                    </TouchableOpacity>
 
 
-            <View style={styles.viewText} >
-                <TouchableOpacity onPress={handleEmoji}>
-                    <Image
-                        source={require("../../../../Images/emoji.png")}
-                        style={{ width: 30, height: 30, marginRight: 10 }}
+                    <TextInput style={styles.inputMessage}
+                        placeholder='Nhập tin nhắn.....'
+                        value={message}
+                        onChangeText={(text) => setMessage(text)}
                     />
-                </TouchableOpacity>
 
+                    <TouchableOpacity>
+                        <Image
+                            source={require("../../../../Images/camera_685655.png")}
+                            style={{ width: 30, height: 30, marginLeft: 10 }}
+                        />
+                    </TouchableOpacity>
 
-                <TextInput style={styles.inputMessage}
-                    placeholder='Nhập tin nhắn.....'
-                    onChangeText={(text) => setMessage(text)}
-                />
-
-                <AntDesign style={{ marginLeft: 10 }} name="camerao" size={24} color="black" />
-
-                <Pressable style={({ pressed }) => [
-                    {
-                        backgroundColor: pressed ? 'rgb(210, 230, 255)' : '#38A2CF',
-                    }, styles.btnSend
-                ]} onPress={() => handleSend()}>
-                    <Text style={{ color: "white" }} >Send</Text>
-                </Pressable>
-            </View>
-            {showEmojiSelector && (
-                <View style={styles.emojiSelectorContainer}>
-                    <EmojiSelector
-                        onEmojiSelected={(emoji: any) => {
-                            setMessage((prevMessage) => prevMessage + emoji);
-                            setshowEmojiSelector(false)
-                        }}
-
-                    />
+                    <Pressable style={({ pressed }) => [
+                        {
+                            backgroundColor: pressed ? 'rgb(210, 230, 255)' : '#38A2CF',
+                        }, styles.btnSend
+                    ]} onPress={() => handleSend()}>
+                        <Text style={{ color: "white" }} >Send</Text>
+                    </Pressable>
                 </View>
-            )}
-        </KeyboardAvoidingView >
+            </KeyboardAvoidingView>
+            {
+                showEmojiSelector && (
+                    <View style={styles.emojiSelectorContainer}>
+                        <EmojiSelector
+                            onEmojiSelected={(emoji: any) => {
+                                setMessage((prevMessage) => prevMessage + emoji);
+                                setshowEmojiSelector(false)
+                            }}
+
+                        />
+                    </View>
+                )
+            }
+        </View >
     );
 };
 
@@ -399,6 +506,8 @@ const styles = StyleSheet.create({
         height: 90,
         paddingVertical: 10,
         top: -10,
+        position: 'relative',
+        zIndex: 10
     },
     gradienthead: {
         flexDirection: "row",
@@ -421,8 +530,9 @@ const styles = StyleSheet.create({
         alignContent: 'center'
     },
     body: {
+
         // top:47,
-        height: "67%",
+        height: "88%",
         paddingLeft: 10,
         width: "100%",
         // bottom:47,
@@ -438,7 +548,8 @@ const styles = StyleSheet.create({
 
     },
     container: {
-        flex: 1, flexDirection: 'column'
+        flex: 1,
+        flexDirection: 'column'
     },
     btnSend: {
         paddingHorizontal: 15,

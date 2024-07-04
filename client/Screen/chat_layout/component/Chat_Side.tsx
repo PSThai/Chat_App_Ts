@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useConfig } from 'common/hooks/use-config';
 import { fetcher } from 'common/utils/fetcher';
 import { Response } from 'common/types/res/response.type';
-import { Avatar, Badge, Flex, Skeleton } from 'antd';
 import { ConversationEnum } from 'common/enum/conversation.enum';
 import { ThemeEnum } from 'common/enum/theme.enum';
 import { useAuth } from 'client/hooks/use-auth';
@@ -90,7 +89,7 @@ const Chat_Side: FC = () => {
     listCvsLength > 0 &&
       (async () => {
         // Load data from session storage
-        const sessionCvs = await AsyncStorage.getItem('tshus.current.conversation'); // Corrected key
+        const sessionCvs = await AsyncStorage.getItem('tshus.current.conversation'); 
 
         // Parse data
         const parse = sessionCvs ? JSON.parse(sessionCvs) : null;
@@ -190,9 +189,10 @@ const Chat_Side: FC = () => {
               : isInviter
                 ? chats?.friend?.nickname
                 : chats?.inviter?.nickname;
+
             return (
 
-              <TouchableOpacity onPress={() => handleMessage(nav, item)}>
+              <TouchableOpacity key={item._id} onPress={() => handleMessage(nav, item)}>
 
 
                 <View style={{ flexDirection: 'row', borderColor: "#B7C2CF", borderBottomWidth: 1, paddingTop: 5 }}>

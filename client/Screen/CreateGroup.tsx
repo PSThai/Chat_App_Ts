@@ -14,6 +14,7 @@ import { ChaterType } from 'common/types/chat/chater.type';
 import { Conversations } from 'common/interface/Conversations';
 import { useConversations } from 'client/hooks/user-conversations';
 import { RoomRoleEnum } from 'common/enum/room-role.enum';
+import Toast from 'react-native-toast-message';
 
 
 type FormFindType = {
@@ -117,18 +118,30 @@ const CreateGroup = () => {
             // Check response status
             if (res?.status === 201) {
                 // Show success message
-                Alert.alert('Tạo nhóm thành công!');
+                Toast.show({
+                    type: 'success',
+                    text1: "Tạo nhóm thành công",
+                    text2: "Bạn đã tạo nhóm thành công !",
+                    visibilityTime:1000
+                  })
             } else {
-                
                 // Show error message
-                Alert.alert('Tạo nhóm thất bại!');
+                Toast.show({
+                    type: 'error',
+                    text1: "Tạo nhóm không thành công",
+                    text2: "Vui lòng thử lại!",
+                    visibilityTime:1000
+                  })
             }
         } catch (error) {
             console.log("Lỗi tạo nhóm", error);
-
             // Show error message
-            Alert.alert('Tạo nhóm thất bại!');
-
+            Toast.show({
+                type: 'success',
+                text1: "Tạo nhóm thành công",
+                text2: "Bạn đã tạo nhóm thành công !",
+                visibilityTime:1000
+              })
         }
     };
 

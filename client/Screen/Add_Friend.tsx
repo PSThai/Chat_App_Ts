@@ -1,4 +1,4 @@
-import { Button, Image, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Alert, Button, Image, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import React, { useState } from 'react'
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,7 @@ import { AuthHookType, HookType } from 'common/types/other/hook.type';
 import { UserHasFriend } from 'common/types/chat/user-has-friend.type';
 import { Response } from 'common/types/res/response.type';
 import { FriendStateEnum } from 'common/enum/friend-state.enum'
+import Toast from 'react-native-toast-message';
 
 
 
@@ -20,7 +21,7 @@ const Add_Friend = () => {
     const [userFind, setUserFind] = useState<User | null>(null);
     const [searchType, setSearchType] = React.useState<string>('EMAIL');
     const user: AuthHookType<User> = useAuth();
-    const userHookType : HookType<User> = useAuth();
+    const userHookType: HookType<User> = useAuth();
     const nav = useNavigation();
     const [opChatLoading, setOpChatLoading] = React.useState<boolean>(false);
     type NavType = {
@@ -79,7 +80,11 @@ const Add_Friend = () => {
                 friend: FriendStateEnum.PENDING,
                 isSender: true,
             }));
-
+            Toast.show({
+                type: 'success',
+                text1: "Gửi lời mời kết bạn thành công thành công",
+                visibilityTime:1000
+            })
             // Message success
             console.log('Đã gửi yêu cầu kết bạn');
         }
@@ -110,10 +115,14 @@ const Add_Friend = () => {
                 // Message error
                 console.error('Mở tin nhắn thất bại');
             } else {
-                // Cancel
-                nav.navigate("Message");
-
+                Toast.show({
+                    type: 'success',
+                    text1: "Tạo đoạn chat thành công",
+                    text2: "Quay lại để chat!",
+                    visibilityTime:1000
+                })
                 closeModal();
+                gobackContact
             }
             // Disable loading
             setOpChatLoading(false);
@@ -130,7 +139,7 @@ const Add_Friend = () => {
                     user: userHookType.get?._id
                 },
             });
-            
+
             if (res?.status === 200) {
                 setUserFind(res?.data);
                 console.log(userFind)
